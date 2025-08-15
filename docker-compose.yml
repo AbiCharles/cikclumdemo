@@ -1,0 +1,24 @@
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_storage:/qdrant/storage
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - qdrant
+    environment:
+      QDRANT_URL: http://qdrant:6333
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY}
+      TOGETHER_CHAT_MODEL: ${TOGETHER_CHAT_MODEL:-meta-llama/Llama-3.3-70B-Instruct-Turbo-Free}
+      TOGETHER_EMBED_MODEL: ${TOGETHER_EMBED_MODEL:-togethercomputer/m2-bert-80M-32k-retrieval}
+    ports:
+      - "8080:8080"
+
+volumes:
+  qdrant_storage:

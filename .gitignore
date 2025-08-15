@@ -1,0 +1,10 @@
+
+.databricks
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.log
+.env
+.DS_Store
+.pytest_cache/
