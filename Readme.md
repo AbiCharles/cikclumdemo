@@ -82,4 +82,52 @@ TOGETHER_API_KEY=sk-your-key-here
 # Optional performance tuning
 TOP_K=3
 MAX_NEW_TOKENS=300
-TEMPERATURE=0.1
+TEMPERATURE=0.1 
+
+```
+### 3. **Start Stack**
+`docker compose up --build`
+
+This will:
+* Build the app image.
+* Start Qdrant on port 6333.
+* Start the FastAPI app on port 8080 (with Gradio UI mounted at /ui).
+
+### Accessing the App
+
+**UI:**
+`http://localhost:8080/ui`
+* Enter a Patient ID (e.g., P001) and Drug Name (e.g., Humira).
+* Toggle Fast Mode ON/OFF.
+* Click Run.
+
+**Health check:**
+`curl http://localhost:8080/health`
+
+### Testing via CLI
+
+`data/test.py` can send requests to the running summarization agent:
+`python -m data.test --patient P003 --drug Ozempic`
+
+### Example Test Cases
+
+| Patient ID | Drug | Plan | Expected focus |
+| :--- | :--- | :--- | :--- |
+| P001 | Humira | Acme Gold HMO | RA criteria + TB screening form |
+| P003 | Humira | CarePlus PPO | Crohn’s criteria + portal form CP-IMM-03 |
+| P001 | Ozempic | Acme Gold HMO | A1c ≥ 7%, metformin trial |
+| P003 | Ozempic | CarePlus PPO | Age ≥ 18, renal function, hypoglycemia history |
+| P005 | Eliquis | Acme Silver EPO | NVAF + bleeding risk form EPO-CARD-07 |
+| P003 | Eliquis | CarePlus PPO | DVT/PE, 5-day parenteral anticoag pre-req |
+
+### Stopping the App
+`docker compose down`
+
+### Notes
+* **Fast Mode** significantly reduces latency but may miss policy sections.
+* **Reflection mode** (Fast Mode OFF) is slower but more complete.
+* Qdrant dashboard is available at `http://localhost:6333/dashboard`.
+* To change models, edit `.env`:
+  * `TOGETHER_CHAT_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo-Free`
+  * `TOGETHER_EMBED_MODEL=togethercomputer/m2-bert-80M-32k-retrieval`
+```
