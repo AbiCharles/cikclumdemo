@@ -143,14 +143,42 @@ This will:
 
 ### Example Test Cases
 
-| Patient ID | Drug | Plan | Expected focus |
-| :--- | :--- | :--- | :--- |
-| P001 | Humira | Acme Gold HMO | RA criteria + TB screening form |
-| P003 | Humira | CarePlus PPO | Crohn’s criteria + portal form CP-IMM-03 |
-| P001 | Ozempic | Acme Gold HMO | A1c ≥ 7%, metformin trial |
-| P003 | Ozempic | CarePlus PPO | Age ≥ 18, renal function, hypoglycemia history |
-| P005 | Eliquis | Acme Silver EPO | NVAF + bleeding risk form EPO-CARD-07 |
-| P003 | Eliquis | CarePlus PPO | DVT/PE, 5-day parenteral anticoag pre-req |
+These example test cases are designed to exercise **both Fast Mode and Reflection Mode**.  
+- **Fast Mode** should return a complete summary if all key sections (eligibility, step therapy, documentation, forms) are already covered in the top-K results.  
+- **Reflection Mode** will detect missing sections and re-query the RetrievalAgent to fill in gaps, demonstrating the iterative A2A workflow.  
+They also ensure coverage across all available drugs and plans in the synthetic dataset.
+
+| Patient ID | Drug     | Plan            | Expected focus (what the summary should surface) |
+|:--|:--|:--|:--|
+| **P001** | **Humira**  | **Acme Gold HMO**   | RA eligibility (active disease), **DMARD trial** (e.g., MTX), **TB screening required**, **Form HUM-01**, documentation: DAS28 + prior DMARDs |
+| **P003** | **Humira**  | **CarePlus PPO**    | **Crohn’s eligibility**, GI documentation (colonoscopy or fecal calprotectin), **Portal form CP-IMM-03**, baseline TB/HBV screening |
+| **P001** | **Ozempic** | **Acme Gold HMO**   | **A1c ≥ 7%**, **metformin trial** unless contraindicated, documentation: **A1c within 60 days** + prior meds |
+| **P003** | **Ozempic** | **CarePlus PPO**    | **Age ≥ 18**, renal function & **hypoglycemia history**, **Form CP-ENDO-02**, documentation: **A1c + prior therapies** |
+| **P005** | **Eliquis** | **Acme Silver EPO** | **NVAF eligibility**, documentation: **CBC + CrCl + med review**, **Form EPO-CARD-07** (bleeding risk) |
+| **P003** | **Eliquis** | **CarePlus PPO**    | **DVT/PE eligibility**, **5-day parenteral anticoag pre-req** (unless contraindicated), documentation: **imaging + anticoag history** |
+
+### Test Data Coverage
+
+This table lists all drug/plan combinations in the synthetic dataset and the **sections** available for each.  
+- A ✅ means the section exists in the dataset for that combination.  
+- A ❌ means it’s missing, which means **Fast Mode** will not return it without Reflection Mode.
+
+| Drug     | Plan            | Eligibility | Step Therapy | Documentation | Forms | Notes |
+|:--|:--|:--:|:--:|:--:|:--:|:--:|
+| Humira   | Acme Gold HMO   | ✅ | ✅ | ✅ | ✅ | ❌ |
+| Humira   | CarePlus PPO    | ✅ | ❌ | ✅ | ✅ | ❌ |
+| Ozempic  | Acme Gold HMO   | ✅ | ✅ | ✅ | ❌ | ❌ |
+| Ozempic  | CarePlus PPO    | ✅ | ❌ | ✅ *(added)* | ✅ | ❌ |
+| Eliquis  | Acme Silver EPO | ✅ | ❌ | ✅ | ✅ | ❌ |
+| Eliquis  | CarePlus PPO    | ✅ | ✅ | ✅ *(added)* | ❌ | ❌ |
+| Humira   | Any             | ❌ | ❌ | ❌ | ❌ | ✅ |
+| Ozempic  | Any             | ❌ | ❌ | ❌ | ❌ | ✅ |
+
+**Notes:**
+- Rows with **Any** plan are generic notes, not tied to a specific plan.
+- The “*(added)*” markers show new documentation entries added in the dataset updates to improve Fast Mode completeness.
+- Missing forms or step therapy entries are intentional in some cases to allow Reflection Mode to demonstrate filling those gaps.
+
 
 ### Stopping the App
 `docker compose down`

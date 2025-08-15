@@ -1,9 +1,26 @@
-# data/prior_auth_docs.py
+"""
+data/prior_auth_docs.py
+
+Synthetic prior-authorization corpus used by the RetrievalAgent.
+
+This module provides:
+1) patient_plan_map(): deterministic patient_id -> plan
+2) build_synthetic_corpus(): small list of policy "snippets" to index into Qdrant
+
+Fields per snippet:
+  - doc_id:     unique, stable string id (used in citations)
+  - drug:       canonical drug name ("Humira", "Ozempic", "Eliquis")
+  - plan:       display name of plan ("Acme Gold HMO", "CarePlus PPO", "Acme Silver EPO", or "Any" for general notes)
+  - section:    one of {"eligibility","step_therapy","documentation","forms","notes"}
+  - content:    short policy text fragment
+"""
+
 from __future__ import annotations
 from typing import List, Dict
 
+
 def patient_plan_map() -> Dict[str, str]:
-    # tiny deterministic mapping (non-PHI)
+    """Tiny deterministic mapping (non-PHI)."""
     return {
         "P001": "Acme Gold HMO",
         "P002": "Acme Gold HMO",
@@ -12,19 +29,25 @@ def patient_plan_map() -> Dict[str, str]:
         "P005": "Acme Silver EPO",
     }
 
+
 def build_synthetic_corpus() -> List[Dict]:
     """
     Returns a small list of 'documents' representing prior authorization policy snippets
     across a few drugs and health plans. Each item is payload-friendly for Qdrant.
+
+    NOTE:
+    - Keep doc_id unique & stable (used by citations).
+    - Coverage is intentionally small but spans sections so reflection can find gaps.
     """
     docs: List[Dict] = []
-    def add(doc_id, drug, plan, section, content):
+
+    def add(doc_id: str, drug: str, plan: str, section: str, content: str):
         docs.append({
             "doc_id": doc_id,
             "drug": drug,
             "plan": plan,
-            "section": section,   # "eligibility" | "step_therapy" | "documentation" | "forms" | "notes"
-            "content": content
+            "section": section,  # "eligibility" | "step_therapy" | "documentation" | "forms" | "notes"
+            "content": content,
         })
 
     # ---- Drug: Humira (adalimumab) ----
@@ -57,6 +80,9 @@ def build_synthetic_corpus() -> List[Dict]:
         "Type 2 diabetes; BMI not a criterion. Must be age ≥ 18; not covered for type 1 diabetes.")
     add("OZE-CAREPLUS-FORMS-1", "Ozempic", "CarePlus PPO", "forms",
         "Form CP-ENDO-02; include renal function and hypoglycemia history.")
+    # NEW: add CarePlus documentation (fills a common missing section in Fast Mode)
+    add("OZE-CAREPLUS-DOCS-1", "Ozempic", "CarePlus PPO", "documentation",
+        "Provide recent A1c, prior therapies and responses, and renal function labs if available.")
 
     # ---- Drug: Eliquis (apixaban) ----
     add("ELI-ACME-ELIG-1", "Eliquis", "Acme Silver EPO", "eligibility",
@@ -69,10 +95,14 @@ def build_synthetic_corpus() -> List[Dict]:
         "Treatment of DVT/PE or risk reduction of recurrence after initial therapy.")
     add("ELI-CAREPLUS-STEP-1", "Eliquis", "CarePlus PPO", "step_therapy",
         "If for DVT/PE, must have completed at least 5 days of parenteral anticoagulation unless contraindicated.")
+    # NEW: add CarePlus documentation (again, helps Fast Mode completeness)
+    add("ELI-CAREPLUS-DOCS-1", "Eliquis", "CarePlus PPO", "documentation",
+        "Provide imaging reports and anticoagulation history; include bleeding risk assessment when available.")
 
-    # Generic notes
+    # ---- Generic notes (plan='Any' works because we don't hard-filter by plan) ----
     add("GEN-NOTES-1", "Humira", "Any", "notes",
         "Renewal requires evidence of clinical response and adherence; reassess annually.")
     add("GEN-NOTES-2", "Ozempic", "Any", "notes",
         "Coverage excludes combination with GLP-1 receptor agonists unless specified by plan.")
+
     return docs
