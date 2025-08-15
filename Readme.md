@@ -210,7 +210,7 @@ When you open the Gradio UI at `http://localhost:8080/ui`, you’ll see the foll
 
 ---
 
-## Benchmarking the App
+## Benchmarking in the App
 
 You can benchmark the app in two ways:
 
