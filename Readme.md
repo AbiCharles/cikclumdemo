@@ -1,74 +1,106 @@
 # A2A Prior Authorization Demo
 
-This project demonstrates **Agent-to-Agent (A2A)** communication between two autonomous agents:
-- **RetrievalAgent** — retrieves prior-authorization policy snippets from a Qdrant vector DB.
-- **SummarizationAgent** — orchestrates retrieval, optionally performs a reflection step to fetch missing sections, and produces a concise, actionable summary.
+## Architecture Overview
 
-It includes:
-- **Fast Mode toggle** (skip reflection for faster results)
-- **Big “Retrieval in process…”** status banner
-- **Reset Form** button in the UI
-- **Docker Compose** setup with Qdrant and the app in separate services
-
----
-
-## **Architecture Overview**
+This demo implements a **co-located Agent-to-Agent (A2A) architecture** where two autonomous agents collaborate to retrieve and summarize prior authorization policy details for a given patient and drug.
 
 **Local stack (all running in Docker Compose)**:
 - **Qdrant** (vector database) — stores synthetic prior authorization policy snippets.
 - **FastAPI app** — hosts both agents under one service.
 - **Gradio UI** — mounted at `/ui`, used to input Patient ID and Drug Name.
-- **Together.ai API** — used for chat completions (meta-llama/Llama-3.3-70B-Instruct-Turbo-Free) and embeddings (togethercomputer/m2-bert-80M-32k-retrieval).
+- **Together.ai API** — used for chat completions (`meta-llama/Llama-3.3-70B-Instruct-Turbo-Free`) and embeddings (`togethercomputer/m2-bert-80M-32k-retrieval`).
+
+### **SummarizationAgent**
+- **Role**: Orchestrator.
+- **Purpose**:
+  - Accepts the user’s goal (patient ID + drug name).
+  - Determines the patient’s plan from a synthetic dataset.
+  - Delegates retrieval tasks to the RetrievalAgent.
+  - Optionally performs a *reflection step* to identify missing policy sections and re-query for them.
+  - Produces the final summary, checklist, and citations.
+
+### **RetrievalAgent**
+- **Role**: Information retriever.
+- **Purpose**:
+  - Accepts retrieval tasks from the SummarizationAgent.
+  - Converts the query into vector embeddings using Together.ai’s embedding model.
+  - Searches a Qdrant vector database for relevant policy snippets.
+  - Returns top-K results, optionally filtered to specific sections.
 
 ---
 
-## **Agents**
+## Demo Behavior to Highlight A2A Concepts
 
-### RetrievalAgent
-- On first request:
-  - Auto-detects embedding dimension from Together.ai.
-  - Creates the Qdrant collection (`prior_auth_demo`) if missing.
-  - Ingests a synthetic dataset of policy snippets.
-- Retrieves `TOP_K` relevant policy snippets for a given `(patient_id, drug_name)` pair.
+### 1. Goal Decomposition
+- **User input**: Patient ID and Drug Name are entered in the Gradio UI.
+- **SummarizationAgent**:
+  - Determines the patient's plan.
+  - Decomposes the task into retrieval and summarization.
+  - Delegates retrieval to the RetrievalAgent via an A2A HTTP call.
 
-### SummarizationAgent
-- Delegates to RetrievalAgent to get initial snippets.
-- **Optional reflection step**:
-  - Identifies missing sections (eligibility, step therapy, documentation, forms).
-  - If not in Fast Mode, re-queries the retrieval agent for those sections.
-- Produces a final summary with checklist and citations.
+### 2. Task Delegation
+- **SummarizationAgent → RetrievalAgent**:
+  - RetrievalAgent embeds the query text.
+  - Runs vector search in Qdrant.
+  - Returns results (section, content, relevance score) to SummarizationAgent.
+
+### 3. Optional Reflection & Iteration
+- **Fast Mode OFF (Reflection Enabled)**:
+  - SummarizationAgent asks Together.ai to identify **missing sections** (`eligibility`, `step_therapy`, `documentation`, `forms`).
+  - If missing sections exist, it issues a **focused re-query** to RetrievalAgent.
+  - Merges initial and focused results.
+- **Fast Mode ON (Reflection Disabled)**:
+  - Skips missing-section detection and re-query.
+  - Produces the summary from the first retrieval only.
+
+### 4. Final Summarization
+- SummarizationAgent sends the retrieved content to Together.ai’s chat model.
+- Generates:
+  - **Concise summary**
+  - **Checklist** of required documentation
+  - **Citations** for referenced policy snippets.
+
+### 5. User Feedback in the UI
+- **Big Status Banner**: Shows “⏳ Retrieval in process…” immediately when **Run** is clicked.
+- **Run Button**: Disabled while processing, re-enabled after results are ready.
+- **Reset Form**: Resets defaults, clears outputs, re-enables **Run**.
+
+### 6. Traceability
+- Both agents return an **A2A-style JSON response** with:
+  - `task_id`
+  - `agent` name
+  - `state` (`completed` / `failed`)
+  - `output` (summary, checklist, citations)
+  - `trace` (states, messages, nested traces)
+  - `raw_intermediate` (e.g., missing sections, fast mode flag)
+
+### 7. Observing the Difference
+- **Fast Mode ON**:
+  - One RetrievalAgent call.
+  - Faster output, may omit sections.
+- **Fast Mode OFF**:
+  - Potentially multiple RetrievalAgent calls.
+  - More complete summaries.
 
 ---
 
-## **UI Features**
+## **Running the App**
 
-- **Fast Mode** (default ON):
-  - Skips the reflection re-query.
-  - Reduces retrieval + summarization to a single pass.
-  - Much faster, but summaries may omit some sections.
-- **Big Status Banner**:
-  - Shows “⏳ Retrieval in process…” while the request is running.
-  - Disables the **Run** button until processing completes.
-- **Reset Form**:
-  - Resets Patient ID, Drug Name, and Fast Mode to defaults.
-  - Clears all outputs and re-enables the **Run** button.
+### 1. **Prerequisites**
+- [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running.
+- Together.ai API key ([Sign up here](https://api.together.xyz)).
 
----
-
-## **Synthetic Dataset**
-
-- **Patients → Plans**:
-  - `P001`, `P002` → Acme Gold HMO
-  - `P003`, `P004` → CarePlus PPO
-  - `P005` → Acme Silver EPO
-
-- **Drugs**:
-  - Humira
-  - Ozempic
-  - Eliquis
+### 2. **Setup**
+Create a `.env` file in the repo root:
+```bash
+TOGETHER_API_KEY=sk-your-key-here
+# Optional performance tuning
+TOP_K=3
+MAX_NEW_TOKENS=300
+TEMPERATURE=0.1
 
 ---
-
+```
 ## **Running the App**
 
 ### 1. **Prerequisites**
