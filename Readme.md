@@ -163,3 +163,31 @@ This will:
   * `TOGETHER_CHAT_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo-Free`
   * `TOGETHER_EMBED_MODEL=togethercomputer/m2-bert-80M-32k-retrieval`
 ```
+```
+### Benchmarking Results
+
+The following table details the individual trial latencies for **Fast** and **Reflection** modes when processing the request for patient P003 and the drug Ozempic over 5 trials.
+
+| Mode | Trial | Latency (s) |
+| :--- | :--- | :--- |
+| FAST | 1/5 | 21.298 |
+| FAST | 2/5 | 12.320 |
+| FAST | 3/5 | 16.755 |
+| FAST | 4/5 | 18.461 |
+| FAST | 5/5 | 12.835 |
+| REFL | 1/5 | 76.169 |
+| REFL | 2/5 | 65.257 |
+| REFL | 3/5 | 19.025 |
+| REFL | 4/5 | 29.478 |
+| REFL | 5/5 | 31.674 |
+
+***
+
+## Latency Summary
+
+This table provides a statistical summary of the latency data, highlighting the difference in performance between the two modes. The **Reflection (REFL)** mode, which performs an additional query, shows a significantly higher mean and maximum latency compared to the **Fast (FAST)** mode.
+
+| Name | Count | Mean (s) | Median (s) | P95 (s) | Min (s) | Max (s) |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| FAST | 5 | 16.334 | 16.755 | 18.461 | 12.320 | 21.298 |
+| REFL | 5 | 44.321 | 31.674 | 65.257 | 19.025 | 76.169 |
