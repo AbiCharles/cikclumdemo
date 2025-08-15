@@ -106,8 +106,17 @@ TEMPERATURE=0.1
 ### 1. **Prerequisites**
 - [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running.
 - Together.ai API key ([Sign up here](https://api.together.xyz)).
+- Git installed (for cloning the repo, if not already on your machine).
+- Python 3.12+ (optional if running locally without Docker).
 
-### 2. **Setup**
+
+### 2. Clone the Repository
+Clone the demo repository using Git and navigate into its directory.
+
+`git clone https://github.com/AbiCharles/cikclumdemo.git`
+cd <your-repo>
+
+### 3. **Setup**
 Create a `.env` file in the repo root:
 ```bash
 TOGETHER_API_KEY=sk-your-key-here
@@ -117,7 +126,7 @@ MAX_NEW_TOKENS=300
 TEMPERATURE=0.1 
 
 ```
-### 3. **Start Stack**
+### 4. **Start Stack**
 `docker compose up --build`
 
 This will:
