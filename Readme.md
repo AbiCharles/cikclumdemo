@@ -83,23 +83,7 @@ This demo implements a **co-located Agent-to-Agent (A2A) architecture** where tw
   - More complete summaries.
 
 ---
-
-## **Running the App**
-
-### 1. **Prerequisites**
-- [Docker Desktop](https://www.docker.com/products/docker-desktop) installed and running.
-- Together.ai API key ([Sign up here](https://api.together.xyz)).
-
-### 2. **Setup**
-Create a `.env` file in the repo root:
-```bash
-TOGETHER_API_KEY=sk-your-key-here
-# Optional performance tuning
-TOP_K=3
-MAX_NEW_TOKENS=300
-TEMPERATURE=0.1
-
----
+```
 ```
 ## **Running the App**
 
