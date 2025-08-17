@@ -1,3 +1,4 @@
+from __future__ import annotations
 """
 data/prior_auth_docs.py
 
@@ -15,7 +16,7 @@ Fields per snippet:
   - content:    short policy text fragment
 """
 
-from __future__ import annotations
+
 from typing import List, Dict
 
 
