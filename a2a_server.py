@@ -13,6 +13,7 @@ Also provides simple operational endpoints:
 - GET /.well-known/agents     -> basic agent directory (helpful when exploring the API)
 """
 
+
 from __future__ import annotations
 
 from fastapi import FastAPI
@@ -28,10 +29,6 @@ settings = get_settings()
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
-
-    Returns:
-        A FastAPI instance with CORS configured and both agents mounted
-        under a single process (the topology you selected).
     """
     app = FastAPI(
         title="A2A Prior Auth Demo",
@@ -42,31 +39,22 @@ def create_app() -> FastAPI:
         ),
     )
 
-    # ------------------------------------------------------------
-    # CORS (wide-open for demo convenience; tighten for production)
-    # ------------------------------------------------------------
+    # CORS (wide-open for demo; restrict in production)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],          # In production, restrict to your UI origin(s)
+        allow_origins=["*"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
-    # ------------------------------------------------------------
-    # Mount agents under one app (single-process topology)
-    # ------------------------------------------------------------
+    # Mount agents (single-process topology)
     app.include_router(retrieval_router("/agents/retrieval"))
     app.include_router(summarization_router("/agents/summarization"))
 
-    # ------------------------------------------------------------
-    # Operational & discovery endpoints
-    # ------------------------------------------------------------
     @app.get("/", tags=["meta"])
     def index() -> dict:
-        """
-        Human-friendly index for quick navigation while developing.
-        """
+        """Human-friendly index for quick navigation."""
         return {
             "name": "A2A Prior Auth Demo",
             "version": "0.1.0",
@@ -88,33 +76,31 @@ def create_app() -> FastAPI:
 
     @app.get("/.well-known/agents", tags=["meta"])
     def agent_directory() -> dict:
-        """
-        Minimal agent directory to help A2A discovery and manual testing.
-        """
+        """Minimal agent directory to help A2A discovery and manual testing."""
         return {
             "agents": [
                 {
                     "id": "retrieval-agent",
                     "card_url": "/agents/retrieval/.well-known/agent-card.json",
                     "rpc_url": "/agents/retrieval/task",
+                    "a2a_schema_version": 1,
                 },
                 {
                     "id": "summarization-agent",
                     "card_url": "/agents/summarization/.well-known/agent-card.json",
                     "rpc_url": "/agents/summarization/task",
+                    "a2a_schema_version": 1,
                 },
             ]
         }
 
     @app.get("/health", tags=["meta"])
     def health() -> dict:
-        """
-        Lightweight liveness/readiness probe.
-        """
+        """Liveness/readiness probe."""
         return {"ok": True}
 
     return app
 
 
-# For `uvicorn a2a_server:app` convenience (optional)
+# For `uvicorn a2a_server:app`
 app = create_app()
