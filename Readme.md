@@ -10,6 +10,27 @@ This demo implements a **co-located Agent-to-Agent (A2A) architecture** where tw
 - **Gradio UI** — mounted at `/ui`, used to input Patient ID and Drug Name.
 - **Together.ai API** — used for chat completions (`meta-llama/Llama-3.3-70B-Instruct-Turbo-Free`) and embeddings (`togethercomputer/m2-bert-80M-32k-retrieval`).
 
+## Repo Layout (main components only)
+
+.
+├─ agent/
+│  ├─ __init__.py
+│  ├─ retrieval_agent.py          # A2A server wrapper + retrieval logic
+│  └─ summarization_agent.py      # A2A server wrapper + orchestration/summary/reflect
+├─ data/
+│  ├─ __init__.py
+│  ├─ prior_auth_docs.py          # tiny synthetic dataset + helper to load/ingest
+│  └─ test.py                     # quick CLI smoke tests
+├─ a2a_server.py                  # mounts both A2A servers in one FastAPI app
+├─ app.py                         # Gradio UI calling the SummarizationAgent via A2A
+├─ requirements.txt               # Required packages to run project
+├─ Dockerfile                     # Docker build file
+├─ docker-compose.yml             # Docker requirements
+├─ .gitignore                     # Ignored files when uploading to git
+└─ Makefile                       # Make short commands
+└─ README.md                      # Project description and instructions
+
+
 ### **SummarizationAgent**
 - **Role**: Orchestrator.
 - **Purpose**:
@@ -56,9 +77,11 @@ This demo implements a **co-located Agent-to-Agent (A2A) architecture** where tw
 ### 4. Final Summarization
 - SummarizationAgent sends the retrieved content to Together.ai’s chat model.
 - Generates:
-  - **Concise summary**
-  - **Checklist** of required documentation
-  - **Citations** for referenced policy snippets.
+  - **Concise summary** of requirements needed based on plan and drug combination
+  - **Checklist** of requirements the patient already met
+  - **Citations** for referenced policy snippets
+  - **Needed for Prior Auth (PA) Approval** shows what requirements are met and missing for final approval. 
+  If all requirements are met,then PA can be approved.
 
 ### 5. User Feedback in the UI
 - **Big Status Banner**: Shows “⏳ Retrieval in process…” immediately when **Run** is clicked.
