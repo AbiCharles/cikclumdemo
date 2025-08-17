@@ -235,7 +235,7 @@ When you open the Gradio UI at `http://localhost:8080/ui`, you’ll see the foll
 
 You can benchmark the app in two ways:
 
-### **1. In the UI**
+### **1. In the UI (server must be started on port 8080)**
 - Go to the **Benchmark** tab in the Gradio interface.
 - Set:
   - **Patient ID** (e.g., `P003`)
@@ -245,37 +245,37 @@ You can benchmark the app in two ways:
 - Click **Run Benchmark**.
 - The results table will compare Fast Mode and Reflection Mode latencies, and logs will show per-trial timings.
 
-### **2. From the CLI**
+### **2. From the CLI (server must be started on port 8080)**
 Run the included benchmarking script:
 ```bash
 python -m data.bench --patient P003 --drug Ozempic --trials 5 --warmup 1
 ```
 
-## Benchmarking Results from CLI
+## Benchmarking Results from CLI (seconds)
 
 The following table details the individual trial latencies for **Fast** and **Reflection** modes when processing the request for patient P003 and the drug Ozempic over 5 trials.
 
-| Mode | Trial | Latency (s) |
-| :--- | :--- | :--- |
-| FAST | 1/5 | 21.298 |
-| FAST | 2/5 | 12.320 |
-| FAST | 3/5 | 16.755 |
-| FAST | 4/5 | 18.461 |
-| FAST | 5/5 | 12.835 |
-| REFL | 1/5 | 76.169 |
-| REFL | 2/5 | 65.257 |
-| REFL | 3/5 | 19.025 |
-| REFL | 4/5 | 29.478 |
-| REFL | 5/5 | 31.674 |
+| Trial | Time (s) |
+| :--- | :--- |
+| AST trial 1/5 | 13.504 |
+| FAST trial 2/5 | 33.692 |
+| FAST trial 3/5 | 25.738 |
+| FAST trial 4/5 | 20.375 |
+| FAST trial 5/5 | 18.836 |
+| REFL trial 1/5 | 56.725 |
+| REFL trial 2/5 | 10.272 |
+| REFL trial 3/5 | 32.630 |
+| REFL trial 4/5 | 28.805 |
+| REFL trial 5/5 | 21.814 |
 
 ***
 
-## Latency Summary
+## Latency Summary (seconds)
 
 This table provides a statistical summary of the latency data, highlighting the difference in performance between the two modes. The **Reflection (REFL)** mode, which performs an additional query, shows a significantly higher mean and maximum latency compared to the **Fast (FAST)** mode.
 
-| Name | Count | Mean (s) | Median (s) | P95 (s) | Min (s) | Max (s) |
+| name | count | mean | median | p95 | min | max |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| FAST | 5 | 16.334 | 16.755 | 18.461 | 12.320 | 21.298 |
-| REFL | 5 | 44.321 | 31.674 | 65.257 | 19.025 | 76.169 |
+| FAST | 5 | 22.429 | 20.375 | 25.738 | 13.504 | 33.692 |
+| REFL | 5 | 30.049 | 28.805 | 32.630 | 10.272 | 56.725 |
 
