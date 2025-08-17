@@ -127,6 +127,7 @@ cd <your-repo>
 Create a `.env` file in the repo root:
 ```bash
 TOGETHER_API_KEY=sk-your-key-here
+TOGETHER_CHAT_MODEL=meta-llama/Llama-3.3-70B-Instruct-Turbo-Free
 # Optional performance tuning
 TOP_K=3
 MAX_NEW_TOKENS=300
