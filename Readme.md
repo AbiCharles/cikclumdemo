@@ -302,3 +302,38 @@ This table provides a statistical summary of the latency data, highlighting the 
 | FAST | 5 | 22.429 | 20.375 | 25.738 | 13.504 | 33.692 |
 | REFL | 5 | 30.049 | 28.805 | 32.630 | 10.272 | 56.725 |
 
+## Project Considerations:
+### Using 1 vs 2 APIs for agents
+
+| Pros: Option A - Both agents in one FastAPI app |
+| :--- |
+| Simpler local dev & ops. One process/container, fewer moving parts, easier .env and logging setup. |
+| Lower friction for the demo. No service discovery or cross‑service auth to wire up; good for first run. |
+| Shared resources. You can share a single embeddings client, LLM client, and connection pool to the vector DB. |
+| Easy to mount multiple A2A servers. The A2A Python SDK lets you add each server’s routes at custom paths (agent_card_url, rpc_url), so two agents can live under one FastAPI app cleanly. A2A Protocol |
+
+| Cons: Option A - Both agents in one FastAPI app |
+| :--- |
+| Weaker isolation. A crash, memory leak, or hot loop in one agent can take down both. |
+| Coupling risk. Teams may be tempted to bypass A2A and call in‑process functions, undermining the “opaque agent” contract A2A encourages. |
+| Discovery conventions. The spec’s recommended well‑known Agent Card location is at the origin root (/.well-known/agent-card.json). With subpaths you’ll usually use “direct configuration” or a registry, which is fine but not the pure well‑known pattern. A2A Protocol+1 |
+| Scaling limits. You can’t scale or update agents independently; a deployment of one is a deployment of both. |
+
+| Pros: Option B - Each agent is its own service/port |
+| :--- |
+| True agent independence. Separate processes, health checks, and autoscaling knobs; failures are isolated. |
+| Cleaner security & identity. Per‑agent auth schemes/scopes and (later) distinct certificates or service policies map well to the protocol’s security model. A2A Protocol |
+| Spec‑friendly discovery. Each service can publish its Agent Card at its root well‑known path, which plays nicely with catalogs/registries and simple client bootstrap. A2A Protocol |
+| Production realism. Mirrors how A2A is intended to connect opaque agents across vendors/frameworks, not just modules in one codebase. Google Developers Blog |
+
+| Cons: Option B - Each agent is its own service/port |
+| :--- |
+| More ops surface area. Extra containers, ports, health checks, and logs; slightly more to explain in the README. |
+| Small performance tax. Localhost HTTP/SSE calls add a bit of overhead versus in‑process calls (still very small). |
+| Cross‑service concerns. You’ll account for CORS/SSE behavior if a browser ever contacts both directly (our UI will only call the summarizer, so it’s minimal). The protocol expects streaming/long‑running tasks, so keeping SSE paths distinct is important. Google Developers Blog |
+
+| A note on Agent Cards & paths |
+| :--- |
+| Recommended: host a card at /.well-known/agent-card.json on each agent’s origin. A2A Protocol |
+| Allowed alternatives: direct configuration and registries are first‑class discovery mechanisms; you can serve cards at custom paths when co‑locating agents. A2A Protocol |
+| The Python SDK explicitly lets you customize agent_card_url and rpc_url, which is what enables the “two agents in one FastAPI app” approach. A2A Protocol |

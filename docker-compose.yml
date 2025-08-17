@@ -1,24 +1,57 @@
+
+# docker-compose.yml
+# ------------------
+# Purpose:
+#     Defines the local demo stack with:
+#       - Qdrant vector database
+#       - FastAPI app (with Retrieval + Summarization agents and Gradio UI)
+#
+# Responsibilities:
+#     - Build and run the app container (Python + FastAPI + Gradio).
+#     - Run Qdrant as a service with persistent volume.
+#     - Expose ports for host access (app: 8080, qdrant: 6334).
+#
+# Why it matters:
+#     Provides a reproducible local environment to showcase Agent-to-Agent
+#     communication, embeddings search, and summarization workflows.
+
+name: cursor_dir
+
 services:
   qdrant:
     image: qdrant/qdrant:latest
     ports:
-      - "6333:6333"
+      - "6334:6333"   # host:container — Qdrant dashboard now on http://localhost:6334/dashboard
     volumes:
       - qdrant_storage:/qdrant/storage
+    restart: unless-stopped
 
   app:
     build:
       context: .
       dockerfile: Dockerfile
-    depends_on:
-      - qdrant
     environment:
+      # App config
       QDRANT_URL: http://qdrant:6333
-      TOGETHER_API_KEY: ${TOGETHER_API_KEY}
+      # Together API
+      TOGETHER_API_KEY: ${TOGETHER_API_KEY:-}
       TOGETHER_CHAT_MODEL: ${TOGETHER_CHAT_MODEL:-meta-llama/Llama-3.3-70B-Instruct-Turbo-Free}
       TOGETHER_EMBED_MODEL: ${TOGETHER_EMBED_MODEL:-togethercomputer/m2-bert-80M-32k-retrieval}
+      # Optional tuning (override via .env)
+      TOP_K: ${TOP_K:-3}
+      MAX_NEW_TOKENS: ${MAX_NEW_TOKENS:-300}
+      TEMPERATURE: ${TEMPERATURE:-0.1}
     ports:
       - "8080:8080"
+    depends_on:
+      qdrant:
+        condition: service_started  # wait for container to start (no healthcheck dependency)
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
 
 volumes:
   qdrant_storage:

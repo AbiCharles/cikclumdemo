@@ -1,17 +1,33 @@
-"""
-retrieval_agent.py
-------------------
-RetrievalAgent provides vector search over a tiny synthetic policy corpus.
 
-- Uses Together embeddings (m2-bert-80M-32k-retrieval by default)
-- Stores vectors in Qdrant (COSINE distance)
-- Re-creates collection if missing or when we need fresh ingestion
-- Supports optional filtering by policy section for focused re-query
+"""
+Retrieval Agent
+---------------
+Purpose:
+    Provides vector-based retrieval of prior authorization policy snippets
+    for a given patient and drug. Uses Together.ai embeddings with Qdrant
+    as the vector database.
+
+Responsibilities:
+    - Uses Together embeddings (m2-bert-80M-32k-retrieval by default)
+    - Ingest synthetic prior auth corpus into Qdrant (if empty).
+    - Encode queries into embeddings and perform similarity search.
+    - Filter results by section if requested (eligibility, step_therapy, etc.).
+    - Expose an A2A-compatible FastAPI router with /task and agent-card endpoints
+    - Optional min-score post-filter (respects `settings.min_score` if defined).
+
+Why it matters:
+    Decouples evidence retrieval from summarization logic, enabling clean
+    Agent-to-Agent orchestration where this agent specializes in retrieval only.
+"""
+
+"""
 
 Endpoints:
   GET  /.well-known/agent-card.json
   POST /task
 """
+
+
 
 from __future__ import annotations
 
@@ -27,6 +43,7 @@ from qdrant_client.models import (
     Filter,
     FieldCondition,
     MatchAny,
+    MatchValue,
 )
 from together import Together
 
@@ -141,9 +158,9 @@ class RetrievalAgent:
         """
         Perform a similarity search.
 
-        The query is lightly constructed to hint the embedding model about domain context.
-        Optionally filters by section (eligibility, step_therapy, documentation, forms)
-        to support focused re-query after reflection.
+        - Filters by plan and drug to reduce off-topic hits.
+        - Optionally filters by section (eligibility, step_therapy, documentation, forms)
+          to support focused re-query after reflection.
 
         Returns:
             Dict with plan, results (list of payloads + score)
@@ -158,20 +175,30 @@ class RetrievalAgent:
         )
         qvec = self.embed([query])[0]
 
-        # Optional filter to constrain by section during reflection re-query
-        q_filter = None
+        # Build filter: always constrain by plan + drug; optionally by section
+        must = [
+            FieldCondition(key="plan", match=MatchValue(value=plan)),
+            FieldCondition(key="drug", match=MatchValue(value=drug_name)),
+        ]
         if focus_sections:
-            q_filter = Filter(
-                must=[FieldCondition(key="section", match=MatchAny(any=focus_sections))]
-            )
+            must.append(FieldCondition(key="section", match=MatchAny(any=focus_sections)))
 
-        # Execute search
-        hits = self.qdrant.search(
+        q_filter = Filter(must=must)
+
+        # Use the new API (query_points) instead of deprecated search()
+        hits = self.qdrant.query_points(
             collection_name=self.collection,
-            query_vector=qvec,
+            query=qvec,                # vector
             limit=limit,
             query_filter=q_filter,
-        )
+            with_payload=True,
+            with_vectors=False,
+        ).points
+
+        # Optional score threshold (if present in settings)
+        min_score = getattr(settings, "min_score", None)
+        if isinstance(min_score, (int, float)):
+            hits = [h for h in hits if h.score is None or h.score >= float(min_score)]
 
         items = [
             {
@@ -208,6 +235,7 @@ def get_router(base_path: str = "/agents/retrieval") -> APIRouter:
             "id": "retrieval-agent",
             "name": "PriorAuth Retrieval Agent",
             "description": "Retrieves plan-specific prior authorization snippets using vector search.",
+            "a2a_schema_version": 1,  # <— version your A2A contract
             "rpc_url": f"{base_path}/task",
             "input_schema": {
                 "type": "object",
