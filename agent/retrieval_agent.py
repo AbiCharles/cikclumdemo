@@ -219,6 +219,8 @@ class RetrievalAgent:
 # =============================================================================
 # FastAPI Router (A2A-style)
 # =============================================================================
+# Expose A2A discovery + RPC endpoints so other agents can discover
+# and invoke retrieval over HTTP (e.g., the summarization agent).
 def get_router(base_path: str = "/agents/retrieval") -> APIRouter:
     """
     Build the FastAPI router for the RetrievalAgent.
@@ -254,6 +256,7 @@ def get_router(base_path: str = "/agents/retrieval") -> APIRouter:
             "output_schema": {"type": "object", "properties": {"results": {"type": "array"}}},
         }
 
+    # A2A task endpoint consumed by peer agents via HTTP POST.
     @router.post("/task")
     def handle_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         """

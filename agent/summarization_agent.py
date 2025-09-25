@@ -63,6 +63,7 @@ class SummarizationAgent:
         if not settings.together_api_key:
             raise RuntimeError("TOGETHER_API_KEY not set.")
         self.client = Together(api_key=settings.together_api_key)
+        # Peer agent listens on the same FastAPI app; use that base for A2A calls.
         self.base_url = f"http://127.0.0.1:{settings.app_port}"
 
     # ------ Together Chat with simple retry ------
@@ -83,6 +84,7 @@ class SummarizationAgent:
         raise last_err or RuntimeError("Chat failed")
 
     # ------ A2A call to RetrievalAgent ------
+    # Issue an A2A RPC to the RetrievalAgent's `/agents/retrieval/task` endpoint.
     def call_retrieval(
         self,
         patient_id: str,
@@ -298,6 +300,7 @@ def get_router(base_path: str = "/agents/summarization") -> APIRouter:
             "output_schema": {"type": "object", "properties": {"summary_markdown": {"type": "string"}}},
         }
 
+    # Entry point other agents/clients hit when orchestrating via A2A.
     @router.post("/task")
     def handle_task(payload: Dict[str, Any]) -> Dict[str, Any]:
         goal = payload.get("goal") or {}
